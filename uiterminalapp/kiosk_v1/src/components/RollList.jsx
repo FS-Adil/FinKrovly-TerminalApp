@@ -1,0 +1,585 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useKeyboard } from '../context/KeyboardContext';
+import { getAllRolls, searchRolls, testAPIConnection } from '../services/api';
+
+const RollList = () => {
+  const [search, setSearch] = useState({ 
+    name: '', 
+    characteristic: '', 
+    batch: '', 
+    quantity: '' 
+  });
+  const [rolls, setRolls] = useState([]);
+  const [filteredRolls, setFilteredRolls] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [usingMockData, setUsingMockData] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { showKeyboard } = useKeyboard();
+
+  useEffect(() => {
+    fetchRolls();
+    testConnection();
+  }, []);
+
+  // Автоматический фильтр при изменении поиска
+  useEffect(() => {
+    if (rolls.length > 0) {
+      const results = searchRolls(rolls, search);
+      setFilteredRolls(results);
+    }
+  }, [rolls, search]);
+
+  const testConnection = async () => {
+    const status = await testAPIConnection();
+    setConnectionStatus(status);
+  };
+
+  const fetchRolls = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setUsingMockData(false);
+      
+      console.log('🔄 Начинаю загрузку данных...');
+      const data = await getAllRolls();
+      
+      // Проверяем, не mock ли данные
+      const isMockData = data.length > 0 && data[0]._isMock === true;
+      
+      setUsingMockData(isMockData);
+      setRolls(data);
+      
+      if (isMockData) {
+        setError('⚠️ Использую демонстрационные данные. Реальный сервер недоступен.');
+      } else {
+        console.log(`✅ Успешно загружено ${data.length} записей`);
+      }
+      
+    } catch (err) {
+      console.error('❌ Ошибка при загрузке:', err);
+      setError(`Ошибка загрузки: ${err.message || 'Неизвестная ошибка'}`);
+      setUsingMockData(true);
+      
+      // Загружаем демо-данные напрямую
+      const { getMockRolls } = await import('../services/api');
+      const demoData = getMockRolls();
+      setRolls(demoData);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    const { name, value } = e.target;
+    setSearch(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleInputClick = (fieldName, value, inputType = 'text') => {
+    showKeyboard(value, (e) => handleSearchChange(e), inputType, fieldName);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Фильтрация уже происходит в useEffect, но оставляем для явного поиска
+    const results = searchRolls(rolls, search);
+    setFilteredRolls(results);
+  };
+
+  const handleReset = () => {
+    setSearch({ name: '', characteristic: '', batch: '', quantity: '' });
+  };
+
+  const handleMove = (roll) => {
+    navigate('/move', { state: { selectedRoll: roll } });
+  };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading-container">
+          <h3 style={{ color: '#3498db' }}>Загрузка данных...</h3>
+          <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container">
+      <div style={{ 
+        marginBottom: '30px', 
+        textAlign: 'center',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <h2 style={{ color: '#2c3e50', marginBottom: '10px' }}>
+            📦 Список рулонов под краном
+            {usingMockData && (
+              <span style={{
+                fontSize: '14px',
+                color: '#e74c3c',
+                marginLeft: '10px',
+                backgroundColor: '#ffeaa7',
+                padding: '2px 8px',
+                borderRadius: '4px'
+              }}>
+                (Демо-режим)
+              </span>
+            )}
+          </h2>
+          <p style={{ color: '#666' }}>Используйте форму ниже для поиска и фильтрации рулонов</p>
+        </div>
+        <button 
+          onClick={fetchRolls} 
+          className="refresh-btn"
+          title="Обновить данные"
+          style={{
+            padding: '8px 16px',
+            backgroundColor: usingMockData ? '#e74c3c' : '#3498db',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          {usingMockData ? 'Попробовать снова' : '🔄 Обновить'}
+        </button>
+      </div>
+      
+      {/* Форма поиска */}
+      <div className="search-form" style={{
+        backgroundColor: '#f8f9fa',
+        padding: '20px',
+        borderRadius: '8px',
+        marginBottom: '30px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{ marginBottom: '20px', color: '#2c3e50' }}>🔍 Поиск рулонов</h3>
+        <form onSubmit={handleSearch}>
+          <div className="form-row" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '20px',
+            marginBottom: '20px'
+          }}>
+            <div className="form-group">
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e'
+              }}>Наименование</label>
+              <input
+                type="text"
+                name="name"
+                value={search.name}
+                onClick={() => handleInputClick('name', search.name)}
+                onChange={handleSearchChange}
+                className="input-with-keyboard keyboard-hint"
+                placeholder="Введите наименование"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e'
+              }}>Характеристика</label>
+              <input
+                type="text"
+                name="characteristic"
+                value={search.characteristic}
+                onClick={() => handleInputClick('characteristic', search.characteristic)}
+                onChange={handleSearchChange}
+                className="input-with-keyboard keyboard-hint"
+                placeholder="Введите характеристику"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e'
+              }}>Партия</label>
+              <input
+                type="text"
+                name="batch"
+                value={search.batch}
+                onClick={() => handleInputClick('batch', search.batch)}
+                onChange={handleSearchChange}
+                className="input-with-keyboard keyboard-hint"
+                placeholder="Введите партию"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e'
+              }}>Количество</label>
+              <input
+                type="number"
+                name="quantity"
+                value={search.quantity}
+                onClick={() => handleInputClick('quantity', search.quantity, 'number')}
+                onChange={handleSearchChange}
+                className="input-with-keyboard keyboard-hint"
+                placeholder="Введите количество"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+          </div>
+          
+          <div style={{ 
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            marginBottom: '15px'
+          }}>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#666',
+              flex: 1
+            }}>
+              💡 Подсказка: Нажмите на поле для открытия виртуальной клавиатуры
+            </div>
+            
+            <div style={{ 
+              display: 'flex',
+              gap: '10px'
+            }}>
+              <button 
+                type="button" 
+                onClick={handleReset}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Сбросить
+              </button>
+              <button 
+                type="submit" 
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Найти
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Баннер с состоянием */}
+      {error && (
+        <div style={{
+          backgroundColor: usingMockData ? '#ffeaa7' : '#ff7675',
+          color: usingMockData ? '#d35400' : 'white',
+          padding: '12px 15px',
+          borderRadius: '4px',
+          marginBottom: '20px',
+          borderLeft: `4px solid ${usingMockData ? '#fdcb6e' : '#e74c3c'}`,
+          fontSize: '14px'
+        }}>
+          <strong>{usingMockData ? '⚠️ Внимание:' : '❌ Ошибка:'}</strong> {error}
+        </div>
+      )}
+      
+      {/* Таблица результатов */}
+      <div className="table-container">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <h3 style={{ color: '#2c3e50', margin: 0 }}>
+            📋 Результаты поиска
+            <span style={{ 
+              fontSize: '14px', 
+              color: '#666',
+              marginLeft: '10px',
+              fontWeight: 'normal'
+            }}>
+              (Найдено: {filteredRolls.length} из {rolls.length})
+            </span>
+          </h3>
+          
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#7f8c8d',
+            backgroundColor: '#ecf0f1',
+            padding: '4px 12px',
+            borderRadius: '20px'
+          }}>
+            Фильтр активен: {
+              Object.values(search).some(val => val !== '') ? 'Да' : 'Нет'
+            }
+          </div>
+        </div>
+        
+        {filteredRolls.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            color: '#666'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🤔</div>
+            <p style={{ fontSize: '18px', marginBottom: '10px' }}>Рулоны не найдены</p>
+            <p style={{ fontSize: '14px', marginBottom: '20px' }}>
+              Попробуйте изменить параметры поиска или сбросить фильтры
+            </p>
+            <button 
+              onClick={handleReset}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#3498db',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Сбросить фильтры и показать все
+            </button>
+          </div>
+        ) : (
+          <div style={{ 
+            overflowX: 'auto',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              minWidth: '700px'
+            }}>
+              <thead>
+                <tr style={{
+                  backgroundColor: '#121193',
+                  color: 'white'
+                }}>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>ID</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>Наименование</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>Характеристика</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>Партия</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>Количество</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500',
+                    borderRight: '1px solid #34495e'
+                  }}>Местоположение</th>
+                  <th style={{
+                    padding: '12px 15px',
+                    textAlign: 'left',
+                    fontWeight: '500'
+                  }}>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRolls.map((roll, index) => (
+                  <tr 
+                    key={roll.id}
+                    style={{
+                      backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white',
+                      borderBottom: '1px solid #eee',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : 'white'}
+                  >
+                    <td style={{
+                      padding: '12px 15px',
+                      fontWeight: '500',
+                      color: '#2c3e50',
+                      borderRight: '1px solid #eee'
+                    }}>{roll.id}</td>
+                    <td style={{
+                      padding: '12px 15px',
+                      borderRight: '1px solid #eee'
+                    }}>
+                      {roll.name}
+                      {roll._isMock && (
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#95a5a6',
+                          marginLeft: '5px',
+                          fontStyle: 'italic'
+                        }}>
+                          демо
+                        </span>
+                      )}
+                    </td>
+                    <td style={{
+                      padding: '12px 15px',
+                      borderRight: '1px solid #eee'
+                    }}>{roll.characteristic}</td>
+                    <td style={{
+                      padding: '12px 15px',
+                      borderRight: '1px solid #eee'
+                    }}>{roll.batch}</td>
+                    <td style={{
+                      padding: '12px 15px',
+                      fontWeight: '600',
+                      color: '#27ae60',
+                      borderRight: '1px solid #eee'
+                    }}>{roll.quantity.toLocaleString()}</td>
+                    <td style={{
+                      padding: '12px 15px',
+                      borderRight: '1px solid #eee'
+                    }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        backgroundColor: '#e3f2fd',
+                        color: '#1976d2',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        {roll.location}
+                      </span>
+                    </td>
+                    <td style={{
+                      padding: '12px 15px'
+                    }}>
+                      <button 
+                        onClick={() => handleMove(roll)}
+                        disabled={user?.role !== 'operator'}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: user?.role === 'operator' ? '#2ecc71' : '#bdc3c7',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: user?.role === 'operator' ? 'pointer' : 'not-allowed',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (user?.role === 'operator') {
+                            e.currentTarget.style.backgroundColor = '#27ae60';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (user?.role === 'operator') {
+                            e.currentTarget.style.backgroundColor = '#2ecc71';
+                          }
+                        }}
+                      >
+                        {user?.role === 'operator' ? '➡️ Переместить' : 'Требуется роль оператора'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      
+      {/* Информация о фильтрации */}
+      {Object.values(search).some(val => val !== '') && filteredRolls.length > 0 && (
+        <div style={{
+          marginTop: '20px',
+          padding: '10px 15px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+          borderLeft: '4px solid #2196f3',
+          fontSize: '14px',
+          color: '#0d47a1'
+        }}>
+          <strong>💡 Фильтр активен:</strong> Показаны только рулоны, соответствующие критериям поиска.
+          {filteredRolls.length < rolls.length && (
+            <span style={{ marginLeft: '10px' }}>
+              Отфильтровано {rolls.length - filteredRolls.length} из {rolls.length} записей.
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RollList;
