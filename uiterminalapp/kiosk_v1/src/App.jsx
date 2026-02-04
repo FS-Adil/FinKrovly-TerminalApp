@@ -14,7 +14,30 @@ const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!user) return null;
+  // if (!user) return null;
+  if (!user) return (
+    <div className="header">
+      <div className="header-left">
+        <button className="home-btn" onClick={() => navigate('/')}>
+          Домой
+        </button>
+      </div>
+      
+      <div className="header-center">
+        <h1>Система учёта рулонов</h1>
+      </div>
+      
+      <div className="header-right">
+        <div className="user-info">
+          Пользователь
+        </div>
+        <button className="logout-btn" onClick={() => navigate('/login')}>
+          Авторизация
+        </button>
+      </div>
+    </div>
+  );
+
 
   return (
     <div className="header">
@@ -46,25 +69,27 @@ function AppContent() {
   return (
     <Router>
       <div className="App">
-        {user && <Header />}
+        {<Header />}
+        {/* {user && <Header />} */}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={
-            <PrivateRoute>
+            // <PrivateRoute>
               <Home />
-            </PrivateRoute>
+            // </PrivateRoute>
           } />
           <Route path="/rolls" element={
-            <PrivateRoute>
+            // <PrivateRoute>
               <RollList />
-            </PrivateRoute>
+            // </PrivateRoute>
           } />
           <Route path="/move" element={
             <PrivateRoute requiredRole="operator">
               <MoveToWorkshop />
             </PrivateRoute>
           } />
-          <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
+          {/* <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} /> */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
     </Router>

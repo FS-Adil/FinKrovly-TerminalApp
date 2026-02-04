@@ -32,7 +32,7 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <h2>Авторизация</h2>
+      <h2>Авторизация для Оператора</h2>
       <div style={{ 
         backgroundColor: '#e8f4fd', 
         padding: '15px', 
