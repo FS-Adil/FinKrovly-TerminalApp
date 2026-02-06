@@ -1,10 +1,14 @@
 // vite.config.js
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  // Загружаем переменные окружения из файлов .env
-  const env = loadEnv(mode, process.cwd(), '')
+  // Путь к родительской директории (на один уровень выше)
+  const parentDir = path.resolve(process.cwd(), '../../..')
+  
+  // Загружаем переменные окружения из родительской директории
+  const env = loadEnv(mode, parentDir, '')
 
   return {
     plugins: [react()],
@@ -12,7 +16,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Настройка для всех API запросов
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8080',
+          target: env.VITE_API_URL,
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
