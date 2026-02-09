@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Настройка для всех API запросов
         '/api': {
-          target: env.VITE_API_URL,
+          // target: env.VITE_API_URL,
+          target: "http://localhost:8080",
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
