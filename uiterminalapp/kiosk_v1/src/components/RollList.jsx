@@ -23,7 +23,7 @@ const RollList = () => {
 
   useEffect(() => {
     fetchRolls();
-    testConnection();
+    // testConnection();
   }, []);
 
   // Автоматический фильтр при изменении поиска
