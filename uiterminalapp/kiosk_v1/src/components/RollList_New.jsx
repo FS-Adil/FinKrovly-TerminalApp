@@ -12,7 +12,7 @@ const RollList_New = () => {
     quantity: '',
     weight: '',
     length: '',
-    location: '' // Новое поле для фильтрации по местоположению
+    location: ''
   });
   const [rolls, setRolls] = useState([]);
   const [filteredRolls, setFilteredRolls] = useState([]);
@@ -20,12 +20,25 @@ const RollList_New = () => {
   const [error, setError] = useState(null);
   const [usingMockData, setUsingMockData] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showKeyboard } = useKeyboard();
 
   useEffect(() => {
     fetchRolls();
+    
+    // Добавляем обработчик скролла для показа/скрытия кнопки
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Автоматический фильтр при изменении поиска
@@ -35,6 +48,13 @@ const RollList_New = () => {
       setFilteredRolls(results);
     }
   }, [rolls, search]);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const testConnection = async () => {
     const status = await testAPIConnection();
@@ -50,14 +70,12 @@ const RollList_New = () => {
       console.log('🔄 Начинаю загрузку данных...');
       const data = await getAllRolls();
 
-      // ДОБАВЬТЕ ЭТО ДЛЯ ОТЛАДКИ:
-    console.log('📊 Данные получены из API:', data);
-    if (data && data.length > 0) {
-      console.log('📍 Первая запись:', data[0]);
-      console.log('📍 Поле location первой записи:', data[0].location);
-    }
+      console.log('📊 Данные получены из API:', data);
+      if (data && data.length > 0) {
+        console.log('📍 Первая запись:', data[0]);
+        console.log('📍 Поле location первой записи:', data[0].location);
+      }
       
-      // Проверяем, не mock ли данные
       const isMockData = data.length > 0 && data[0]._isMock === true;
       
       setUsingMockData(isMockData);
@@ -74,7 +92,6 @@ const RollList_New = () => {
       setError(`Ошибка загрузки: ${err.message || 'Неизвестная ошибка'}`);
       setUsingMockData(true);
       
-      // Загружаем демо-данные напрямую
       const { getMockRolls } = await import('../services/api');
       const demoData = getMockRolls();
       setRolls(demoData);
@@ -106,7 +123,7 @@ const RollList_New = () => {
       quantity: '',
       weight: '',
       length: '',
-      location: '' // Сбрасываем к значению по умолчанию
+      location: ''
     });
   };
 
@@ -127,6 +144,48 @@ const RollList_New = () => {
 
   return (
     <div className="container">
+      {/* Кнопка "Наверх" - добавлена в правый нижний угол */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)',
+            cursor: 'pointer',
+            fontSize: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            transition: 'all 0.3s ease',
+            opacity: 0.9
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#2980b9';
+            e.currentTarget.style.transform = 'translateY(-5px)';
+            e.currentTarget.style.opacity = 1;
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(52, 152, 219, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#3498db';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.opacity = 0.9;
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+          }}
+          title="Вернуться наверх"
+        >
+          ↑
+        </button>
+      )}
+
       <div style={{ 
         marginBottom: '30px', 
         textAlign: 'center',
@@ -284,7 +343,6 @@ const RollList_New = () => {
             </div>
           </div>
           
-          {/* Вторая строка полей для поиска */}
           <div className="form-row" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -502,8 +560,7 @@ const RollList_New = () => {
             borderRadius: '20px'
           }}>
             Фильтр активен: {
-            //   Object.values(search).some(val => val !== '' && val !== 'Под краном') ? 'Да' : 'Нет'
-            Object.values(search).some(val => val !== '') ? 'Да' : 'Нет'
+              Object.values(search).some(val => val !== '') ? 'Да' : 'Нет'
             }
           </div>
         </div>
@@ -675,21 +732,6 @@ const RollList_New = () => {
                       padding: '12px 15px',
                       borderRight: '1px solid #eee'
                     }}>
-                      {/* <span style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        backgroundColor: roll.location === 'Под краном' ? '#e3f2fd' : 
-                                         roll.location === 'В цеху' ? '#e8f5e9' : 
-                                         roll.location === 'На складе' ? '#fff3e0' : '#f3e5f5',
-                        color: roll.location === 'Под краном' ? '#1976d2' : 
-                               roll.location === 'В цеху' ? '#2e7d32' : 
-                               roll.location === 'На складе' ? '#ef6c00' : '#7b1fa2',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}>
-                        {roll.location}
-                      </span> */}
                       <span style={{
                         display: 'inline-block',
                         padding: '4px 8px',
@@ -746,29 +788,6 @@ const RollList_New = () => {
       </div>
       
       {/* Информация о фильтрации */}
-      {/* {Object.values(search).some(val => val !== '') && filteredRolls.length > 0 && (
-        <div style={{
-          marginTop: '20px',
-          padding: '10px 15px',
-          backgroundColor: '#e3f2fd',
-          borderRadius: '4px',
-          borderLeft: '4px solid #2196f3',
-          fontSize: '14px',
-          color: '#0d47a1'
-        }}>
-          <strong>💡 Фильтр активен:</strong> Показаны только рулоны, соответствующие критериям поиска.
-          {filteredRolls.length < rolls.length && (
-            <span style={{ marginLeft: '10px' }}>
-              Отфильтровано {rolls.length - filteredRolls.length} из {rolls.length} записей.
-            </span>
-          )}
-          {search.location && (
-            <div style={{ marginTop: '5px' }}>
-              <strong>Местоположение:</strong> {search.location}
-            </div>
-          )}
-        </div>
-      )} */}
       {Object.values(search).some(val => val !== '') && filteredRolls.length > 0 && (
         <div style={{
             marginTop: '20px',
