@@ -185,6 +185,72 @@ export const getMockRolls = () => {
       location: 'В цеху',
       _isMock: true
     },
+    {
+      id: 1,
+      name: 'Рулон бумаги А4',
+      characteristic: '80 г/м²',
+      batch: 'BATCH-2023-001',
+      quantity: 100,
+      weight: 120, // Новое поле
+      length: 150, // Новое поле
+      location: 'Под краном',
+      _isMock: true
+    },
+    {
+      id: 2,
+      name: 'Рулон картона',
+      characteristic: '250 г/м²',
+      batch: 'BATCH-2023-002',
+      quantity: 50,
+      weight: 200,
+      length: 100,
+      location: 'В цеху',
+      _isMock: true
+    },
+    {
+      id: 1,
+      name: 'Рулон бумаги А4',
+      characteristic: '80 г/м²',
+      batch: 'BATCH-2023-001',
+      quantity: 100,
+      weight: 120, // Новое поле
+      length: 150, // Новое поле
+      location: 'Под краном',
+      _isMock: true
+    },
+    {
+      id: 2,
+      name: 'Рулон картона',
+      characteristic: '250 г/м²',
+      batch: 'BATCH-2023-002',
+      quantity: 50,
+      weight: 200,
+      length: 100,
+      location: 'В цеху',
+      _isMock: true
+    },
+    {
+      id: 1,
+      name: 'Рулон бумаги А4',
+      characteristic: '80 г/м²',
+      batch: 'BATCH-2023-001',
+      quantity: 100,
+      weight: 120, // Новое поле
+      length: 150, // Новое поле
+      location: 'Под краном',
+      _isMock: true
+    },
+    {
+      id: 2,
+      name: 'Рулон картона',
+      characteristic: '250 г/м²',
+      batch: 'BATCH-2023-002',
+      quantity: 50,
+      weight: 200,
+      length: 100,
+      location: 'В цеху',
+      _isMock: true
+    },
     // Добавьте больше демо-данных с разными местоположениями
   ];
 };
