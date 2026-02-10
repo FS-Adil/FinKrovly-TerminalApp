@@ -57,6 +57,30 @@ export const getAllRolls = async () => {
 /**
  * Преобразовать данные из API в формат компонента
  */
+// const transformRollData = (apiData) => {
+//   if (!apiData || !Array.isArray(apiData)) {
+//     console.warn('Некорректные данные от API:', apiData);
+//     throw new Error('Некорректный формат данных');
+//   }
+  
+//   console.log(`📊 Получено ${apiData.length} записей от API`);
+  
+//   return apiData.map((item, index) => ({
+//     id: index + 1,
+//     name: item.nomenclatureName || 'Без названия',
+//     characteristic: item.characteristicName || 'Без характеристики',
+//     batch: item.batchName || 'Без партии',
+//     quantity: item.quantityBalance || 0,
+//     location: 'Под краном',
+//     // Сохраняем оригинальные данные для отладки
+//     _original: item,
+//   }));
+// };
+
+
+/**
+ * Преобразовать данные из API в формат компонента
+ */
 const transformRollData = (apiData) => {
   if (!apiData || !Array.isArray(apiData)) {
     console.warn('Некорректные данные от API:', apiData);
@@ -70,17 +94,19 @@ const transformRollData = (apiData) => {
     name: item.nomenclatureName || 'Без названия',
     characteristic: item.characteristicName || 'Без характеристики',
     batch: item.batchName || 'Без партии',
-    quantity: item.quantityBalance || 0,
-    location: 'Под краном',
-    // Сохраняем оригинальные данные для отладки
-    _original: item,
+    quantity: item.quantityBalance || null,
+    weight: item.weight || null, // Добавьте эти поля
+    length: item.length || null, // Добавьте эти поля
+    location: item.location || 'Не указано', // ИСПРАВЬТЕ ЭТУ СТРОКУ!
+    // // Сохраняем оригинальные данные для отладки
+    // _original: item,
   }));
 };
 
 /**
  * Демо-данные для разработки
  */
-export const getMockRolls = () => {
+export const getMockRollsOld = () => {
   console.log('📁 Загружаю демонстрационные данные');
   
   const mockData = [
@@ -135,10 +161,38 @@ export const getMockRolls = () => {
   return mockData;
 };
 
+export const getMockRolls = () => {
+  return [
+    {
+      id: 1,
+      name: 'Рулон бумаги А4',
+      characteristic: '80 г/м²',
+      batch: 'BATCH-2023-001',
+      quantity: 100,
+      weight: 120, // Новое поле
+      length: 150, // Новое поле
+      location: 'Под краном',
+      _isMock: true
+    },
+    {
+      id: 2,
+      name: 'Рулон картона',
+      characteristic: '250 г/м²',
+      batch: 'BATCH-2023-002',
+      quantity: 50,
+      weight: 200,
+      length: 100,
+      location: 'В цеху',
+      _isMock: true
+    },
+    // Добавьте больше демо-данных с разными местоположениями
+  ];
+};
+
 /**
  * Поиск рулонов с фильтрацией
  */
-export const searchRolls = (rolls, filters) => {
+export const searchRollsOld = (rolls, filters) => {
   if (!rolls || !Array.isArray(rolls)) {
     console.warn('Некорректные данные для поиска:', rolls);
     return [];
@@ -160,6 +214,35 @@ export const searchRolls = (rolls, filters) => {
                          (roll.quantity && roll.quantity.toString().includes(filters.quantity));
     
     return nameMatch && characteristicMatch && batchMatch && quantityMatch;
+  });
+};
+
+// Добавьте в функцию searchRolls поддержку новых полей:
+export const searchRolls = (rolls, searchParams) => {
+  return rolls.filter(roll => {
+    const matchesName = !searchParams.name || 
+      roll.name.toLowerCase().includes(searchParams.name.toLowerCase());
+    
+    const matchesCharacteristic = !searchParams.characteristic || 
+      roll.characteristic.toLowerCase().includes(searchParams.characteristic.toLowerCase());
+    
+    const matchesBatch = !searchParams.batch || 
+      roll.batch.toLowerCase().includes(searchParams.batch.toLowerCase());
+    
+    const matchesQuantity = !searchParams.quantity || 
+      roll.quantity.toString().includes(searchParams.quantity);
+    
+    const matchesWeight = !searchParams.weight || 
+      (roll.weight && roll.weight.toString().includes(searchParams.weight));
+    
+    const matchesLength = !searchParams.length || 
+      (roll.length && roll.length.toString().includes(searchParams.length));
+
+    const matchesLocation = !searchParams.location || 
+      (roll.location && roll.location.includes(searchParams.location));
+    
+    return matchesName && matchesCharacteristic && matchesBatch && 
+           matchesQuantity && matchesWeight && matchesLength && matchesLocation;
   });
 };
 
