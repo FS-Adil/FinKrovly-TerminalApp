@@ -21,6 +21,10 @@ const RollList_New = () => {
   const [usingMockData, setUsingMockData] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [sortConfig, setSortConfig] = useState({
+    key: 'name',
+    direction: 'asc' // 'asc' или 'desc'
+  });
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showKeyboard } = useKeyboard();
@@ -28,7 +32,6 @@ const RollList_New = () => {
   useEffect(() => {
     fetchRolls();
     
-    // Добавляем обработчик скролла для показа/скрытия кнопки
     const handleScroll = () => {
       if (window.scrollY > 300) {
         setShowScrollTop(true);
@@ -45,9 +48,61 @@ const RollList_New = () => {
   useEffect(() => {
     if (rolls.length > 0) {
       const results = searchRolls(rolls, search);
-      setFilteredRolls(results);
+      const sortedResults = sortData(results, sortConfig);
+      setFilteredRolls(sortedResults);
     }
-  }, [rolls, search]);
+  }, [rolls, search, sortConfig]);
+
+  // Функция сортировки данных
+  const sortData = (data, config) => {
+    if (!config.key) return data;
+    
+    return [...data].sort((a, b) => {
+      const aValue = a[config.key];
+      const bValue = b[config.key];
+      
+      // Проверка на существование значений
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      // Для строк
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue, 'ru', { sensitivity: 'base' });
+        return config.direction === 'asc' ? comparison : -comparison;
+      }
+      
+      // Для чисел
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return config.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Для смешанных типов
+      const comparison = String(aValue).localeCompare(String(bValue), 'ru', { sensitivity: 'base' });
+      return config.direction === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  // Функция для изменения сортировки
+  const requestSort = (key) => {
+    let direction = 'asc';
+    
+    // Если уже сортируем по этому полю, меняем направление
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setSortConfig({ key, direction });
+  };
+
+  // Получение класса для заголовка таблицы
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return '↕️'; // Нейтральная иконка
+    }
+    
+    return sortConfig.direction === 'asc' ? '⬆️' : '⬇️';
+  };
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -112,7 +167,8 @@ const RollList_New = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     const results = searchRolls(rolls, search);
-    setFilteredRolls(results);
+    const sortedResults = sortData(results, sortConfig);
+    setFilteredRolls(sortedResults);
   };
 
   const handleReset = () => {
@@ -125,6 +181,8 @@ const RollList_New = () => {
       length: '',
       location: ''
     });
+    // Сбрасываем сортировку к исходному состоянию
+    setSortConfig({ key: 'name', direction: 'asc' });
   };
 
   const handleMove = (roll) => {
@@ -144,7 +202,7 @@ const RollList_New = () => {
 
   return (
     <div className="container">
-      {/* Кнопка "Наверх" - добавлена в правый нижний угол */}
+      {/* Кнопка "Наверх" */}
       {showScrollTop && (
         <button
           onClick={scrollToTop}
@@ -454,10 +512,12 @@ const RollList_New = () => {
                       roll.length?.toString().includes(value) ||
                       roll.quantity.toString().includes(value)
                     );
-                    setFilteredRolls(results);
+                    const sortedResults = sortData(results, sortConfig);
+                    setFilteredRolls(sortedResults);
                   } else {
                     const results = searchRolls(rolls, search);
-                    setFilteredRolls(results);
+                    const sortedResults = sortData(results, sortConfig);
+                    setFilteredRolls(sortedResults);
                   }
                 }}
               />
@@ -529,6 +589,41 @@ const RollList_New = () => {
           fontSize: '14px'
         }}>
           <strong>{usingMockData ? '⚠️ Внимание:' : '❌ Ошибка:'}</strong> {error}
+        </div>
+      )}
+      
+      {/* Информация о сортировке */}
+      {sortConfig.key && (
+        <div style={{
+          marginBottom: '15px',
+          padding: '10px 15px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+          fontSize: '14px',
+          color: '#0d47a1',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span>📊 Сортировка:</span>
+          <span style={{ fontWeight: '500' }}>
+            По {getFieldName(sortConfig.key)} {sortConfig.direction === 'asc' ? '(по возрастанию)' : '(по убыванию)'}
+          </span>
+          <button 
+            onClick={() => setSortConfig({ key: '', direction: 'asc' })}
+            style={{
+              marginLeft: 'auto',
+              padding: '4px 8px',
+              backgroundColor: '#2196f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Сбросить сортировку
+          </button>
         </div>
       )}
       
@@ -615,48 +710,132 @@ const RollList_New = () => {
                     fontWeight: '500',
                     borderRight: '1px solid #34495e'
                   }}>ID</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Наименование</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Характеристика</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Партия</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Количество</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Вес (кг)</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Длина (м)</th>
-                  <th style={{
-                    padding: '12px 15px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    borderRight: '1px solid #34495e'
-                  }}>Местоположение</th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('name')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Наименование
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('name')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('characteristic')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Характеристика
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('characteristic')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('batch')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Партия
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('batch')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('quantity')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Количество
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('quantity')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('weight')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Вес (кг)
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('weight')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('length')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Длина (м)
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('length')}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    style={{
+                      padding: '12px 15px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      borderRight: '1px solid #34495e',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                    onClick={() => requestSort('location')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      Местоположение
+                      <span style={{ fontSize: '12px' }}>
+                        {getSortIcon('location')}
+                      </span>
+                    </div>
+                  </th>
                   <th style={{
                     padding: '12px 15px',
                     textAlign: 'left',
@@ -744,9 +923,9 @@ const RollList_New = () => {
                         borderRadius: '4px',
                         fontSize: '12px',
                         fontWeight: '500'
-                        }}>
+                      }}>
                         {roll.location || 'Не указано'}
-                        </span>
+                      </span>
                     </td>
                     <td style={{
                       padding: '12px 15px'
@@ -790,29 +969,43 @@ const RollList_New = () => {
       {/* Информация о фильтрации */}
       {Object.values(search).some(val => val !== '') && filteredRolls.length > 0 && (
         <div style={{
-            marginTop: '20px',
-            padding: '10px 15px',
-            backgroundColor: '#e3f2fd',
-            borderRadius: '4px',
-            borderLeft: '4px solid #2196f3',
-            fontSize: '14px',
-            color: '#0d47a1'
+          marginTop: '20px',
+          padding: '10px 15px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+          borderLeft: '4px solid #2196f3',
+          fontSize: '14px',
+          color: '#0d47a1'
         }}>
-            <strong>💡 Фильтр активен:</strong> Показаны только рулоны, соответствующие критериям поиска.
-            {filteredRolls.length < rolls.length && (
+          <strong>💡 Фильтр активен:</strong> Показаны только рулоны, соответствующие критериям поиска.
+          {filteredRolls.length < rolls.length && (
             <span style={{ marginLeft: '10px' }}>
-                Отфильтровано {rolls.length - filteredRolls.length} из {rolls.length} записей.
+              Отфильтровано {rolls.length - filteredRolls.length} из {rolls.length} записей.
             </span>
-            )}
-            {search.location && (
+          )}
+          {search.location && (
             <div style={{ marginTop: '5px' }}>
-                <strong>Местоположение:</strong> {search.location}
+              <strong>Местоположение:</strong> {search.location}
             </div>
-            )}
+          )}
         </div>
-        )}
+      )}
     </div>
   );
+};
+
+// Вспомогательная функция для получения читаемого имени поля
+const getFieldName = (key) => {
+  const fieldNames = {
+    'name': 'Наименованию',
+    'characteristic': 'Характеристике',
+    'batch': 'Партии',
+    'quantity': 'Количеству',
+    'weight': 'Весy',
+    'length': 'Длине',
+    'location': 'Местоположению'
+  };
+  return fieldNames[key] || key;
 };
 
 export default RollList_New;
