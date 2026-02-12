@@ -5,6 +5,7 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
   const [isCaps, setIsCaps] = useState(false);
   const [isNumeric, setIsNumeric] = useState(inputType === 'number' || inputType === 'tel');
   const [isEnglish, setIsEnglish] = useState(false);
+  const [isSymbols, setIsSymbols] = useState(false);
 
   // Определяем, нужно ли использовать английскую раскладку для логина/пароля
   useEffect(() => {
@@ -40,17 +41,24 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
     ['ABC', 'space', 'Готово']
   ];
 
-  const [currentLayout, setCurrentLayout] = useState(isEnglish ? qwertyLayout : russianLayout);
+  // Функция для получения текущей раскладки
+  const getCurrentLayout = () => {
+    if (isNumeric) return numericLayout;
+    if (isSymbols) return symbolLayout;
+    return isEnglish ? qwertyLayout : russianLayout;
+  };
 
   useEffect(() => {
     setInput(currentValue || '');
+    // Сбрасываем режимы при смене типа поля
     if (inputType === 'number' || inputType === 'tel') {
       setIsNumeric(true);
-      setCurrentLayout(numericLayout);
+      setIsSymbols(false);
     } else {
-      setCurrentLayout(isEnglish ? qwertyLayout : russianLayout);
+      setIsNumeric(false);
+      setIsSymbols(false);
     }
-  }, [currentValue, inputType, isEnglish]);
+  }, [currentValue, inputType]);
 
   const handleKeyPress = (key) => {
     let newInput = input;
@@ -69,11 +77,11 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
         setIsCaps(!isCaps);
         return;
       case '123':
-        setCurrentLayout(symbolLayout);
+        setIsSymbols(true);
         setIsNumeric(false);
         return;
       case 'ABC':
-        setCurrentLayout(isEnglish ? qwertyLayout : russianLayout);
+        setIsSymbols(false);
         setIsNumeric(false);
         return;
       case 'Готово':
@@ -100,18 +108,17 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
   const handleToggleLanguage = () => {
     const newIsEnglish = !isEnglish;
     setIsEnglish(newIsEnglish);
-    if (!isNumeric) {
-      setCurrentLayout(newIsEnglish ? qwertyLayout : russianLayout);
-    }
+    // Не сбрасываем input и другие состояния
   };
 
   const handleToggleNumeric = () => {
     const newIsNumeric = !isNumeric;
     setIsNumeric(newIsNumeric);
     if (newIsNumeric) {
-      setCurrentLayout(numericLayout);
+      setIsSymbols(false);
     } else {
-      setCurrentLayout(isEnglish ? qwertyLayout : russianLayout);
+      // При возврате с цифровой клавиатуры возвращаемся к буквенной раскладке
+      setIsSymbols(false);
     }
   };
 
@@ -139,7 +146,7 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
         </div>
         
         <div className="keyboard-layout">
-          {currentLayout.map((row, rowIndex) => (
+          {getCurrentLayout().map((row, rowIndex) => (
             <div key={rowIndex} className="keyboard-row">
               {row.map((key, keyIndex) => {
                 let keyClass = 'keyboard-key';
@@ -176,8 +183,8 @@ const VirtualKeyboard = ({ isVisible, onClose, onInput, currentValue, inputType 
           <button 
             className="keyboard-toggle-btn"
             onClick={handleToggleLanguage}
-            disabled={isNumeric}
-            style={isNumeric ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            disabled={isNumeric || isSymbols}
+            style={isNumeric || isSymbols ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             {isEnglish ? 'RU' : 'EN'}
           </button>

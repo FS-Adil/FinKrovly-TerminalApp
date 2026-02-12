@@ -481,7 +481,7 @@ const RollList_New = () => {
                 <option value="В цеху">В цеху</option>
               </select>
             </div>
-            <div className="form-group">
+            {/* <div className="form-group">
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
@@ -521,7 +521,7 @@ const RollList_New = () => {
                   }
                 }}
               />
-            </div>
+            </div> */}
           </div>
           
           <div style={{ 
