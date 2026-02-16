@@ -479,6 +479,7 @@ const RollList_New = () => {
                 <option value="">Все местоположения</option>
                 <option value="Под краном">Под краном</option>
                 <option value="В цеху">В цеху</option>
+                <option value="БРАК">БРАК</option>
               </select>
             </div>
             {/* <div className="form-group">
