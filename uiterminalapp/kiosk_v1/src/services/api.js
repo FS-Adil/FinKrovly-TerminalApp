@@ -115,7 +115,7 @@ export const getMockRolls = () => {
       quantity: 100,
       weight: 120, // Новое поле
       length: 150, // Новое поле
-      location: 'Под краном',
+      location: 'БРАК',
       _isMock: true
     },
     {
