@@ -45,9 +45,16 @@ const RollList_New = () => {
   }, []);
 
   // Автоматический фильтр при изменении поиска
+  // const [strictSearch, setStrictSearch] = useState(true); // true - все слова, false - любое слово
+
   useEffect(() => {
     if (rolls.length > 0) {
-      const results = searchRolls(rolls, search);
+      // const results = searchRolls(rolls, search);
+      const results = searchRolls(
+        rolls, 
+        search, 
+        // strictSearch
+      );
       const sortedResults = sortData(results, sortConfig);
       setFilteredRolls(sortedResults);
     }
@@ -524,6 +531,32 @@ const RollList_New = () => {
               />
             </div> */}
           </div>
+
+          {/* 🔽🔽🔽 ЗДЕСЬ ВСТАВИТЬ БЛОК С ЧЕКБОКСОМ 🔽🔽🔽 */}
+          {/* <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            marginBottom: '15px',
+            padding: '10px',
+            backgroundColor: '#fff',
+            borderRadius: '4px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={strictSearch}
+                onChange={(e) => setStrictSearch(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: '500', color: '#34495e' }}>Строгий поиск (все слова)</span>
+            </label>
+            <span style={{ fontSize: '12px', color: '#666' }}>
+              {strictSearch ? '🔍 Должны присутствовать все слова' : '🔍 Достаточно любого слова'}
+            </span>
+          </div> */}
+          {/* 🔼🔼🔼 КОНЕЦ БЛОКА С ЧЕКБОКСОМ 🔼🔼🔼 */}
           
           <div style={{ 
             display: 'flex',
