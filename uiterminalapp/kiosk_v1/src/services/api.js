@@ -179,8 +179,81 @@ export const getMockRolls = () => {
 
 /**
  * Поиск рулонов с фильтрацией
+ * Поддерживает поиск по отдельным словам в наименовании
+ * @param {Array} rolls - массив рулонов
+ * @param {Object} searchParams - параметры поиска
+ * @param {boolean} strictMode - если true, требуются все слова; если false - достаточно любого слова
  */
-export const searchRolls = (rolls, searchParams) => {
+export const searchRolls = (rolls, searchParams, strictMode = true) => {
+  if (!rolls || rolls.length === 0) return [];
+  
+  return rolls.filter(roll => {
+    // Проверка наименования с разбивкой на слова
+    let matchesName = true;
+    if (searchParams.name && searchParams.name.trim() !== '') {
+      const searchValue = searchParams.name.toLowerCase().trim();
+      const rollName = (roll.name || '').toLowerCase();
+      
+      // Разбиваем поисковый запрос на отдельные слова
+      const searchWords = searchValue.split(/\s+/).filter(word => word.length > 0);
+      
+      if (searchWords.length > 0) {
+        if (strictMode) {
+          // Строгий режим: должны присутствовать ВСЕ слова
+          matchesName = searchWords.every(searchWord => rollName.includes(searchWord));
+        } else {
+          // Гибкий режим: достаточно хотя бы одного слова
+          matchesName = searchWords.some(searchWord => rollName.includes(searchWord));
+        }
+      } else {
+        matchesName = rollName.includes(searchValue);
+      }
+    }
+    
+    // Проверка характеристики (также можно добавить разбивку на слова)
+    let matchesCharacteristic = true;
+    if (searchParams.characteristic && searchParams.characteristic.trim() !== '') {
+      const searchValue = searchParams.characteristic.toLowerCase().trim();
+      const rollCharacteristic = (roll.characteristic || '').toLowerCase();
+      
+      const searchWords = searchValue.split(/\s+/).filter(word => word.length > 0);
+      
+      if (searchWords.length > 0) {
+        matchesCharacteristic = strictMode 
+          ? searchWords.every(word => rollCharacteristic.includes(word))
+          : searchWords.some(word => rollCharacteristic.includes(word));
+      } else {
+        matchesCharacteristic = rollCharacteristic.includes(searchValue);
+      }
+    }
+    
+    // Проверка партии
+    const matchesBatch = !searchParams.batch || 
+      (roll.batch || '').toLowerCase().includes(searchParams.batch.toLowerCase());
+    
+    // Числовые поля
+    const matchesQuantity = !searchParams.quantity || 
+      (roll.quantity && roll.quantity.toString().includes(searchParams.quantity));
+    
+    const matchesWeight = !searchParams.weight || 
+      (roll.weight && roll.weight.toString().includes(searchParams.weight));
+    
+    const matchesLength = !searchParams.length || 
+      (roll.length && roll.length.toString().includes(searchParams.length));
+    
+    // Местоположение
+    const matchesLocation = !searchParams.location || 
+      (roll.location && roll.location.includes(searchParams.location));
+    
+    return matchesName && matchesCharacteristic && matchesBatch && 
+           matchesQuantity && matchesWeight && matchesLength && matchesLocation;
+  });
+};
+
+/**
+ * Поиск рулонов с фильтрацией
+ */
+export const searchRolls_old = (rolls, searchParams) => {
   return rolls.filter(roll => {
     const matchesName = !searchParams.name || 
       roll.name.toLowerCase().includes(searchParams.name.toLowerCase());
